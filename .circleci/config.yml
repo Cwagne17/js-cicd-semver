@@ -111,14 +111,14 @@ jobs:
           steps:
             - run:
                 name: Create GitHub Pre-release
-                command: gh release create "v$VERSION" -p --target $CIRCLE_SHA1
+                command: gh release create "v${VERSION}" -p --target $CIRCLE_SHA1
       - when:
           condition:
             equal: [ $PRE_RELEASE, "main" ]
           steps:
             - run:
                 name: Create GitHub Release
-                command: gh release create "v$VERSION" --target $CIRCLE_SHA1
+                command: gh release create "v${VERSION}" --target $CIRCLE_SHA1
 
 # Resolve GitFlow
 # This job should handle creating PRs from branch -> branch when GitFlow requires.
