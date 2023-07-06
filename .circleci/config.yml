@@ -13,14 +13,18 @@ commands:
           condition: 
             or:
               - equal: [ << pipeline.git.branch >>, "develop" ]
-              - equal: [ << pipeline.git.branch >>, "feature*" ]
+              - matches:
+                  pattern: feature*
+                  value: << pipeline.git.branch >> 
           steps:
             - run: 
                 name: Set PRE_RELEASE Value for Develop and Feature Branches
                 command: echo "export PRE_RELEASE='dev'" >> $BASH_ENV
       - when:
           condition:
-            equal: [ << pipeline.git.branch >>, "release*" ]
+            matches:
+              pattern: release*
+              value: << pipeline.git.branch >>
           steps:
             - run:
                 name: Set PRE_RELEASE Value for Release Branches
