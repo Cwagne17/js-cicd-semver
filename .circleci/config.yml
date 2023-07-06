@@ -99,8 +99,8 @@ jobs:
     docker:
       - image: cimg/base:stable
     steps:
-      - set-version-env
       - gh/setup
+      - set-version-env
       - when:
           condition:
             or:
@@ -111,14 +111,14 @@ jobs:
           steps:
             - run:
                 name: Create GitHub Pre-release
-                command: gh release create "v${VERSION}" -p --target $CIRCLE_SHA1
+                command: gh release create $VERSION -p --target $CIRCLE_SHA1 -t $VERSION
       - when:
           condition:
-            equal: [ $PRE_RELEASE, "main" ]
+            equal: [ << pipeline.git.branch >>, "main" ]
           steps:
             - run:
                 name: Create GitHub Release
-                command: gh release create "v${VERSION}" --target $CIRCLE_SHA1
+                command: gh release create $VERSION --target $CIRCLE_SHA1 -t $VERSION
 
 # Resolve GitFlow
 # This job should handle creating PRs from branch -> branch when GitFlow requires.
