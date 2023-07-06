@@ -118,7 +118,7 @@ workflows:
       - build
       - push:
           context: DockerHub
-          depends_on: build
+          requires: [build]
           filters:
             branches:
               only:
