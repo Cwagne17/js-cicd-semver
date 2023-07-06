@@ -8,7 +8,7 @@ commands:
     steps:
       - when:
           condition: 
-            equal: [ << pipeline.git.branch >>, "main" ]
+            equal: [ << pipeline.git.branch >>, "develop" ]
           steps:
             - run: echo "export PRE_RELEASE='dev'" >> $BASH_ENV
       - when:
