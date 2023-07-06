@@ -18,7 +18,7 @@ commands:
   # develop  == "dev"
   # release  == "rc"
   # main     == "" (main is considered a stable release)
-  set-version-envs:
+  set-version-env:
     steps:
       - run: 
           name: Set Default PRE_RELEASE Value
@@ -48,25 +48,25 @@ commands:
           command: echo "export VERSION=$(node version.js)" >> $BASH_ENV
 
 jobs:
-  # Bulid Dockerfile
-  # This job should run on all branches and set the ENV
-  # value PRE_RELEASE based on the branch.
-  build:
+  # Deliver Docker Image
+  # This job should run on develop, release, and main.
+  push:
     executor:
       dlc: true
       name: docker/machine
     steps:
       - checkout
       - set-version-envs
-      - run: printenv VERSION
-      # - docker/build:
-      #     extra_build_args: 
-      #     image:
-      #     lint-dockerfile:
-      #     tag: 
-
-# Deliver Docker Image
-# This job should run on develop, release, and main.
+      - attach_workspace:
+          at: .
+      - run:
+         name: Load Docker Image
+         command: |
+           docker image load < docker.tar
+      - docker/check
+      - docker/push:
+          image: "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+          tag: $VERSION
 
 # Run test suites
 # This job should run on all branches and persist the output.
@@ -86,9 +86,34 @@ jobs:
 # This example is ignoring hotfix for simplicity's sake
 
 workflows:
-  build:
+  # Bulid Dockerfile
+  # This workflow should run on all branches and set the ENV
+  # value PRE_RELEASE based on the branch.
+  publish-image:
     jobs:
-      - build
-
-
-
+      - docker/publish:
+          after_build:
+            - run:
+                name: Save Image as Tar
+                command: |
+                  docker image save -o docker.tar
+            - persist_to_workspace:
+              root: .
+              paths:
+                - docker.tar
+          after_checkout:
+            - set-version-envs
+          deploy: false
+          extra_build_args: --build-arg PRE_RELEASE=$PRE_RELEASE
+          image: "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+          lint-dockerfile: true
+          tag: $VERSION
+      
+      - push:
+          context: DockerHub
+          filters:
+            branches:
+              only:
+                - develop
+                - /release.*/
+                - main
