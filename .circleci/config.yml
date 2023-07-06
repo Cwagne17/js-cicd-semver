@@ -96,8 +96,9 @@ jobs:
   # This job should run only when a release branch is merged into main.
   # If this case is satisfied then a github release will be tagged
   gh_release:
-    docker:
-      - image: cimg/base:stable
+    executor:
+      dlc: true
+      name: docker/machine
     steps:
       - gh/setup
       - set-version-env
