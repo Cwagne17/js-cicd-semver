@@ -1,0 +1,62 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@2.2.0
+
+commands:
+  set-prerelease-env:
+    steps:
+      - when:
+          condition: 
+            equal: [ << pipeline.git.branch >>, "main" ]
+          steps:
+            - run: echo "export PRE_RELEASE='dev'" >> $BASH_ENV
+      - when:
+          condition:
+            equal: [ << pipeline.git.branch >>, "release*" ]
+          steps:
+            - run: echo "export PRE_RELEASE='rc'" >> $BASH_ENV
+
+jobs:
+  # Bulid Dockerfile
+  # This job should run on all branches and set the ENV
+  # value PRE_RELEASE based on the branch.
+  build:
+    executor:
+      dlc: true
+      name: docker/machine
+    steps:
+      - set-prerelease-env
+      - command: printenv PRE_RELEASE
+
+# Deliver Docker Image
+# This job should run on develop, release, and main.
+# The following values are mappings shoud be set for PRE_RELEASE
+# develop == "dev"
+# release == "rc"
+# main == "" (main is considered a stable release)
+
+# Run test suites
+# This job should run on all branches and persist the output.
+# The output of this job could be used for a code coverage job.
+
+# Lint Application
+# This job should run on all branches
+
+# Create Github Release
+# This job should run only when a release branch is merged into main.
+# If this case is satisfied then a github release will be tagged
+
+# Resolve GitFlow
+# This job should handle creating PRs from branch -> branch when GitFlow requires.
+# When a release branch merges into main it should also create a PR
+# from the release branch into develop
+# This example is ignoring hotfix for simplicity's sake
+
+workflows:
+  build:
+    jobs:
+      - build
+
+
+
