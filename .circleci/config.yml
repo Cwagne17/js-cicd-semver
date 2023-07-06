@@ -48,6 +48,32 @@ commands:
           command: echo "export VERSION=$(node version.js)" >> $BASH_ENV
 
 jobs:
+  # Bulid Dockerfile
+  # This workflow should run on all branches and set the ENV
+  # value PRE_RELEASE based on the branch.
+  build:
+    executor:
+      dlc: true
+      name: docker/machine
+    steps:
+      - checkout
+      - set-version-envs
+      - docker/build:
+          extra_build_args: --build-arg PRE_RELEASE=$PRE_RELEASE
+          image: "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+          lint-dockerfile: true
+          tag: $VERSION
+      - run:
+          name: Save Image as Tar
+          command: |
+            docker image save -o docker.tar
+      - persist_to_workspace:
+          root: .
+          paths:
+            - docker.tar
+
+
+
   # Deliver Docker Image
   # This job should run on develop, release, and main.
   push:
@@ -86,31 +112,13 @@ jobs:
 # This example is ignoring hotfix for simplicity's sake
 
 workflows:
-  # Bulid Dockerfile
-  # This workflow should run on all branches and set the ENV
-  # value PRE_RELEASE based on the branch.
+  
   publish-image:
     jobs:
-      - docker/publish:
-          after_build:
-            - run:
-                name: Save Image as Tar
-                command: |
-                  docker image save -o docker.tar
-            - persist_to_workspace:
-              root: .
-              paths:
-                - docker.tar
-          after_checkout:
-            - set-version-envs
-          deploy: false
-          extra_build_args: --build-arg PRE_RELEASE=$PRE_RELEASE
-          image: "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
-          lint-dockerfile: true
-          tag: $VERSION
-      
+      - build
       - push:
           context: DockerHub
+          depends_on: build
           filters:
             branches:
               only:
