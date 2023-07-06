@@ -57,7 +57,7 @@ jobs:
       name: docker/machine
     steps:
       - checkout
-      - set-version-envs
+      - set-version-env
       - docker/build:
           extra_build_args: --build-arg PRE_RELEASE=$PRE_RELEASE
           image: "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
@@ -82,7 +82,7 @@ jobs:
       name: docker/machine
     steps:
       - checkout
-      - set-version-envs
+      - set-version-env
       - attach_workspace:
           at: .
       - run:
