@@ -6,16 +6,23 @@ orbs:
 commands:
   set-prerelease-env:
     steps:
+      - run: 
+          name: Set Default PRE_RELEASE Value
+          command: echo "export PRE_RELEASE=''" >> $BASH_ENV
       - when:
           condition: 
             equal: [ << pipeline.git.branch >>, "develop" ]
           steps:
-            - run: echo "export PRE_RELEASE='dev'" >> $BASH_ENV
+            - run: 
+                name: Set PRE_RELEASE Value for Develop Branch
+                command: echo "export PRE_RELEASE='dev'" >> $BASH_ENV
       - when:
           condition:
             equal: [ << pipeline.git.branch >>, "release*" ]
           steps:
-            - run: echo "export PRE_RELEASE='rc'" >> $BASH_ENV
+            - run:
+                name: Set PRE_RELEASE Value for Release Branches
+                command: echo "export PRE_RELEASE='rc'" >> $BASH_ENV
 
 jobs:
   # Bulid Dockerfile
