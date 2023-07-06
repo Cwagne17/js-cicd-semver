@@ -1,0 +1,14 @@
+{
+  "name": "js-cicd-semver",
+  "version": "1.0.0",
+  "description": "Example of implementing versioning in CICD",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Christopher Wagner",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
