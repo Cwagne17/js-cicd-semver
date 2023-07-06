@@ -27,7 +27,7 @@ jobs:
       name: docker/machine
     steps:
       - set-prerelease-env
-      - command: printenv PRE_RELEASE
+      - run: printenv PRE_RELEASE
 
 # Deliver Docker Image
 # This job should run on develop, release, and main.
