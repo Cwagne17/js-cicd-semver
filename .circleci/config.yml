@@ -60,7 +60,7 @@ jobs:
       - set-version-env
       - docker/build:
           extra_build_args: --build-arg PRE_RELEASE=$PRE_RELEASE
-          image: "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+          image: "cwagne17/$CIRCLE_PROJECT_REPONAME"
           lint-dockerfile: true
           tag: $VERSION
       - run:
@@ -71,8 +71,6 @@ jobs:
           root: .
           paths:
             - docker.tar
-
-
 
   # Deliver Docker Image
   # This job should run on develop, release, and main.
@@ -91,7 +89,7 @@ jobs:
            docker image load < docker.tar
       - docker/check
       - docker/push:
-          image: "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+          image: "cwagne17/$CIRCLE_PROJECT_REPONAME"
           tag: $VERSION
 
 # Run test suites
