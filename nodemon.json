@@ -1,0 +1,17 @@
+{
+    "restartable": "rs",
+    "ignore": [
+      ".git",
+      "node_modules/**/node_modules"
+    ],
+    "verbose": true,
+    "watch": [
+      "**/*.js"
+    ],
+    "env": {
+        "PRE_RELEASE": "dev",
+        "NODE_ENV": "development",
+        "PORT": 3000
+    },
+    "ext": "js,json"
+  }
