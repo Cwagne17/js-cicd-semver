@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   docker: circleci/docker@2.2.0
+  gh: circleci/github-cli@2.2.0
 
 commands:
   # This command will set the environment variable PRE_RELEASE
@@ -20,6 +21,7 @@ commands:
   # main     == "" (main is considered a stable release)
   set-version-env:
     steps:
+      - checkout
       - run: 
           name: Set Default PRE_RELEASE Value
           command: echo "export PRE_RELEASE=''" >> $BASH_ENV
@@ -56,7 +58,6 @@ jobs:
       dlc: true
       name: docker/machine
     steps:
-      - checkout
       - set-version-env
       - docker/build:
           extra_build_args: --build-arg PRE_RELEASE=$PRE_RELEASE
@@ -79,7 +80,6 @@ jobs:
       dlc: true
       name: docker/machine
     steps:
-      - checkout
       - set-version-env
       - attach_workspace:
           at: .
@@ -92,16 +92,31 @@ jobs:
           image: "cwagne17/$CIRCLE_PROJECT_REPONAME"
           tag: $VERSION
 
-# Run test suites
-# This job should run on all branches and persist the output.
-# The output of this job could be used for a code coverage job.
-
-# Lint Application
-# This job should run on all branches
-
-# Create Github Release
-# This job should run only when a release branch is merged into main.
-# If this case is satisfied then a github release will be tagged
+  # Create Github Release
+  # This job should run only when a release branch is merged into main.
+  # If this case is satisfied then a github release will be tagged
+  gh_release:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - set-version-env
+      - gh/setup
+      - when:
+          condition:
+            or:
+              - equal: [ $PRE_RELEASE, "dev" ]
+              - equal: [ $PRE_RELEASE, "rc" ]
+          steps:
+            - run:
+                name: Create GitHub Pre-release
+                command: gh release create "v$VERSION" --generate-notes -p --target $CIRCLE_SHA1
+      - when:
+          condition:
+            equal: [ $PRE_RELEASE, "main" ]
+          steps:
+            - run:
+                name: Create GitHub Release
+                command: gh release create "v$VERSION" --generate-notes --target $CIRCLE_SHA1
 
 # Resolve GitFlow
 # This job should handle creating PRs from branch -> branch when GitFlow requires.
@@ -110,7 +125,6 @@ jobs:
 # This example is ignoring hotfix for simplicity's sake
 
 workflows:
-  
   publish-image:
     jobs:
       - build
@@ -123,3 +137,15 @@ workflows:
                 - develop
                 - /release.*/
                 - main
+  
+  create-release:
+    jobs:
+      - gh_release:
+          context: GitHub
+          filters:
+            branches:
+              only:
+                - develop
+                - /release.*/
+                - main 
+
