@@ -45,7 +45,7 @@ commands:
                 command: echo "export PRE_RELEASE='rc'" >> $BASH_ENV
       - run:
           name: Set Version
-          command: node version.js
+          command: echo "export VERSION=$(node version.js)" >> $BASH_ENV
 
 jobs:
   # Bulid Dockerfile
@@ -58,6 +58,7 @@ jobs:
     steps:
       - checkout
       - set-version-envs
+      - run: printenv VERSION
       # - docker/build:
       #     extra_build_args: 
       #     image:
