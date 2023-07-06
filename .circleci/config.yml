@@ -1,0 +1,151 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@2.2.0
+  gh: circleci/github-cli@2.2.0
+
+commands:
+  # This command will set the environment variable PRE_RELEASE
+  # based on the branch that is recieving the push.
+  #
+  # The repository should be `checked-out` prior to using this command.
+  # The command needs the version.js file that is used to build the version.
+  #
+  # Node should also be present on the machine running the job as it is needed
+  # to run the version.js script.
+  #
+  # The following values are mappings shoud be set for PRE_RELEASE
+  # feature* == "dev"
+  # develop  == "dev"
+  # release  == "rc"
+  # main     == "" (main is considered a stable release)
+  set-version-env:
+    steps:
+      - checkout
+      - run: 
+          name: Set Default PRE_RELEASE Value
+          command: echo "export PRE_RELEASE=''" >> $BASH_ENV
+      - when:
+          condition: 
+            or:
+              - equal: [ << pipeline.git.branch >>, "develop" ]
+              - matches:
+                  pattern: ^feature.+$
+                  value: << pipeline.git.branch >> 
+          steps:
+            - run: 
+                name: Set PRE_RELEASE Value for Develop and Feature Branches
+                command: echo "export PRE_RELEASE='dev'" >> $BASH_ENV
+      - when:
+          condition:
+            matches:
+              pattern: ^release.+$
+              value: << pipeline.git.branch >>
+          steps:
+            - run:
+                name: Set PRE_RELEASE Value for Release Branches
+                command: echo "export PRE_RELEASE='rc'" >> $BASH_ENV
+      - run:
+          name: Set Version
+          command: echo "export VERSION=$(node version.js)" >> $BASH_ENV
+
+jobs:
+  # Bulid Dockerfile
+  # This workflow should run on all branches and set the ENV
+  # value PRE_RELEASE based on the branch.
+  build:
+    executor:
+      dlc: true
+      name: docker/machine
+    steps:
+      - set-version-env
+      - docker/build:
+          extra_build_args: --build-arg PRE_RELEASE=$PRE_RELEASE
+          image: "cwagne17/$CIRCLE_PROJECT_REPONAME"
+          lint-dockerfile: true
+          tag: $VERSION
+      - run:
+          name: Save Image as Tar
+          command: |
+            docker image save -o docker.tar cwagne17/$CIRCLE_PROJECT_REPONAME
+      - persist_to_workspace:
+          root: .
+          paths:
+            - docker.tar
+
+  # Deliver Docker Image
+  # This job should run on develop, release, and main.
+  push:
+    executor:
+      dlc: true
+      name: docker/machine
+    steps:
+      - set-version-env
+      - attach_workspace:
+          at: .
+      - run:
+         name: Load Docker Image
+         command: |
+           docker image load < docker.tar
+      - docker/check
+      - docker/push:
+          image: "cwagne17/$CIRCLE_PROJECT_REPONAME"
+          tag: $VERSION
+
+  # Create Github Release
+  # This job should run only when a release branch is merged into main.
+  # If this case is satisfied then a github release will be tagged
+  gh_release:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - set-version-env
+      - gh/setup
+      - when:
+          condition:
+            or:
+              - equal: [ $PRE_RELEASE, "dev" ]
+              - equal: [ $PRE_RELEASE, "rc" ]
+          steps:
+            - run:
+                name: Create GitHub Pre-release
+                command: gh release create "v$VERSION" --generate-notes -p --target $CIRCLE_SHA1
+      - when:
+          condition:
+            equal: [ $PRE_RELEASE, "main" ]
+          steps:
+            - run:
+                name: Create GitHub Release
+                command: gh release create "v$VERSION" --generate-notes --target $CIRCLE_SHA1
+
+# Resolve GitFlow
+# This job should handle creating PRs from branch -> branch when GitFlow requires.
+# When a release branch merges into main it should also create a PR
+# from the release branch into develop
+# This example is ignoring hotfix for simplicity's sake
+
+workflows:
+  publish-image:
+    jobs:
+      - build
+      - push:
+          context: DockerHub
+          requires: [build]
+          filters:
+            branches:
+              only:
+                - develop
+                - /release.*/
+                - main
+  
+  create-release:
+    jobs:
+      - gh_release:
+          context: GitHub
+          filters:
+            branches:
+              only:
+                - develop
+                - /release.*/
+                - main 
+
